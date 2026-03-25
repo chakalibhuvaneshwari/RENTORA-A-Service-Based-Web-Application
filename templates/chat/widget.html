@@ -1,0 +1,114 @@
+<!-- Chatbot Window -->
+<div class="chatbot-window shadow-lg border-0" id="chatWindow" style="display: none; flex-direction: column; position: fixed; bottom: 90px; right: 20px; width: 350px; height: 500px; background: white; border-radius: 15px; z-index: 1050; overflow: hidden; border: 1px solid rgba(0,0,0,0.1);">
+    <div class="chatbot-header bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold"><i class="fa-solid fa-robot me-2"></i> Rentora Assistant</h6>
+        <i class="fa-solid fa-times" style="cursor: pointer;" onclick="toggleChat()"></i>
+    </div>
+    
+    <div class="chatbot-body p-3 flex-grow-1" id="chatBody" style="overflow-y: auto; background: #f8f9fa;">
+        <div class="d-flex mb-3">
+            <div class="bg-white text-dark p-3 rounded-3 shadow-sm border" style="max-width: 85%; font-size: 0.95rem;">
+                Hi! 👋 I'm your Rentora Assistant. How can I help you find your perfect home today?
+            </div>
+        </div>
+        
+        <!-- Suggestion Chips Container -->
+        <div id="suggestionChips" class="d-flex flex-wrap gap-2 mb-3">
+            <button class="btn btn-sm btn-outline-primary rounded-pill bg-white shadow-sm" onclick="quickSend('Find Apartments')">View Apartments</button>
+            <button class="btn btn-sm btn-outline-primary rounded-pill bg-white shadow-sm" onclick="quickSend('Private Rooms')">Private Rooms</button>
+            <button class="btn btn-sm btn-outline-primary rounded-pill bg-white shadow-sm" onclick="quickSend('How to list property?')">List Property</button>
+            <button class="btn btn-sm btn-outline-primary rounded-pill bg-white shadow-sm" onclick="quickSend('Under 8000')">Budget Options</button>
+        </div>
+    </div>
+    
+    <div class="chatbot-input p-3 border-top bg-white d-flex align-items-center">
+        <input type="text" id="chatInput" class="form-control border-0 bg-light py-2" placeholder="Ask me something..." onkeypress="handleEnter(event)" style="font-size: 0.95rem;">
+        <button class="btn btn-primary ms-2 rounded-circle shadow-sm" onclick="sendMessage()" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleChat() {
+        const chatWindow = document.getElementById('chatWindow');
+        if(chatWindow.style.display === 'flex') {
+            chatWindow.style.display = 'none';
+        } else {
+            chatWindow.style.display = 'flex';
+            document.getElementById('chatInput').focus();
+        }
+    }
+    
+    function handleEnter(e) {
+        if(e.key === 'Enter') {
+            sendMessage();
+        }
+    }
+    
+    function quickSend(text) {
+        document.getElementById('chatInput').value = text;
+        sendMessage();
+    }
+    
+    function appendMessage(text, isUser) {
+        const chatBody = document.getElementById('chatBody');
+        const div = document.createElement('div');
+        div.className = `d-flex mb-3 ${isUser ? 'justify-content-end' : ''}`;
+        
+        const innerDiv = document.createElement('div');
+        innerDiv.className = `p-3 rounded-3 shadow-sm ${isUser ? 'bg-primary text-white' : 'bg-white text-dark border'}`;
+        innerDiv.style.maxWidth = '85%';
+        innerDiv.style.fontSize = '0.95rem';
+        innerDiv.style.whiteSpace = 'pre-line'; // Preserves newlines
+        innerDiv.innerText = text;
+        
+        div.appendChild(innerDiv);
+        chatBody.appendChild(div);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+    
+    function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if(!text) return;
+        
+        // Hide chips after first message
+        document.getElementById('suggestionChips').style.display = 'none';
+        
+        // Append user message
+        appendMessage(text, true);
+        input.value = '';
+        
+        // Show typing indicator
+        const typingId = 'typing-' + Date.now();
+        const chatBody = document.getElementById('chatBody');
+        const typingDiv = document.createElement('div');
+        typingDiv.id = typingId;
+        typingDiv.className = 'd-flex mb-3';
+        typingDiv.innerHTML = `<div class="bg-light text-muted p-2 px-3 rounded-pill border small shadow-sm"><i class="fa-solid fa-ellipsis fa-fade"></i> Typing...</div>`;
+        chatBody.appendChild(typingDiv);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        
+        // Fetch API
+        fetch('/chat/api/reply/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}' // Best practice
+            },
+            body: JSON.stringify({message: text})
+        })
+        .then(res => res.json())
+        .then(data => {
+            const typingNode = document.getElementById(typingId);
+            if(typingNode) typingNode.remove();
+            appendMessage(data.reply, false);
+        })
+        .catch(err => {
+            const typingNode = document.getElementById(typingId);
+            if(typingNode) typingNode.remove();
+            appendMessage("I'm having trouble connecting right now. Please try again later.", false);
+        });
+    }
+</script>
