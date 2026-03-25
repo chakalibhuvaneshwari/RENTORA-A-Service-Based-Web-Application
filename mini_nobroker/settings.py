@@ -26,7 +26,7 @@ SECRET_KEY = 'd2wqsm!bnng=*xv2@_u1&a3p4$7bsvv_f0vvwj6l=@mpfvz*wq'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['rentora-ihyn.onrender.com','127.0.0.1','localhost']
 
 
 # Application definition
